@@ -1,3 +1,3 @@
-require "mkmf"
+require 'mkmf'
 
-create_makefile("accelerated_record/accelerated_record")
+create_makefile 'accelerated_record/accelerated_record'
