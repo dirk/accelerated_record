@@ -8,6 +8,13 @@ typedef struct {
   VALUE reflection;
 } belongs_to_association_t;
 
+void belongs_to_association_mark(void* uncasted_data)
+{
+  belongs_to_association_t* data = uncasted_data;
+	rb_gc_mark(data->owner);
+	rb_gc_mark(data->reflection);
+}
+
 void belongs_to_association_free(void* data)
 {
 	free(data);
@@ -21,7 +28,7 @@ size_t belongs_to_association_size(const void* data)
 static const rb_data_type_t belongs_to_association_type = {
   .wrap_struct_name = "belongs_to_association_t",
   .function = {
-    .dmark = NULL,
+    .dmark = belongs_to_association_mark,
     .dfree = belongs_to_association_free,
     .dsize = belongs_to_association_size,
   },
