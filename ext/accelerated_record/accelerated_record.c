@@ -57,7 +57,7 @@ void Init_accelerated_record(void)
 {
   rb_mAcceleratedRecord = rb_define_module("AcceleratedRecord");
 
-  rb_cBelongsToAssociation = rb_define_class_under(rb_mAcceleratedRecord, "BelongsToAssociation", rb_cObject);
+  rb_cBelongsToAssociation = rb_define_class_under(rb_mAcceleratedRecord, "BelongsToAssociation", rb_cData);
   rb_define_alloc_func(rb_cBelongsToAssociation, belongs_to_association_alloc);
 	rb_define_method(rb_cBelongsToAssociation, "initialize", belongs_to_association_initialize, 2);
 }
