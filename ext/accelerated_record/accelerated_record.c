@@ -1,7 +1,6 @@
 #include "accelerated_record.h"
 
-VALUE rb_mAcceleratedRecord;
-VALUE rb_cBelongsToAssociation;
+VALUE rb_mAcceleratedRecord, rb_mExt, rb_cBelongsToAssociation;
 
 typedef struct {
   VALUE owner;
@@ -181,8 +180,9 @@ VALUE belongs_to_association_set_target(VALUE self, VALUE target)
 void Init_accelerated_record(void)
 {
   rb_mAcceleratedRecord = rb_define_module("AcceleratedRecord");
+  rb_mExt = rb_define_module_under(rb_mAcceleratedRecord, "Ext");
 
-  rb_cBelongsToAssociation = rb_define_class_under(rb_mAcceleratedRecord, "BelongsToAssociation", rb_cData);
+  rb_cBelongsToAssociation = rb_define_class_under(rb_mExt, "BelongsToAssociation", rb_cData);
   rb_define_alloc_func(rb_cBelongsToAssociation, belongs_to_association_alloc);
   rb_define_method(rb_cBelongsToAssociation, "initialize", belongs_to_association_initialize, 2);
   rb_define_method(rb_cBelongsToAssociation, "klass", belongs_to_association_klass, 0);

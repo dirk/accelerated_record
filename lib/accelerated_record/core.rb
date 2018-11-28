@@ -1,17 +1,12 @@
 require 'accelerated_record/version'
 
+# Load the native extension before anything else.
 require 'accelerated_record/accelerated_record'
 
+require 'accelerated_record/accelerators'
+
 module AcceleratedRecord
-  def self.speedup!
-    ActiveRecord::Reflection::BelongsToReflection.class_eval do
-      def association_class
-        if polymorphic?
-          ::ActiveRecord::Associations::BelongsToPolymorphicAssociation
-        else
-          ::AcceleratedRecord::BelongsToAssociation
-        end
-      end
-    end
+  def self.accelerate!
+    Accelerators.all.each(&:accelerate!)
   end
 end
