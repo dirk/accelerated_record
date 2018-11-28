@@ -1,5 +1,16 @@
 #include "accelerated_record.h"
 
+static ID
+  id_association,
+  id_has_one,
+  id_inverse_of,
+  id_inversed_from,
+  id_klass,
+  id_name,
+  id_ivColumns,
+  id_ivHash_rows,
+  id_ivRows;
+
 VALUE rb_mAcceleratedRecord, rb_mExt, rb_cBelongsToAssociation, rb_mResult;
 
 typedef struct {
@@ -65,7 +76,7 @@ VALUE belongs_to_association_initialize(VALUE self, VALUE owner, VALUE reflectio
 VALUE belongs_to_association_klass(VALUE self)
 {
   belongs_to_association_t* data = get_belongs_to_association(self);
-  return rb_funcallv_public(data->reflection, rb_intern("klass"), 0, NULL);
+  return rb_funcallv_public(data->reflection, id_klass, 0, NULL);
 }
 
 VALUE belongs_to_association_loaded(VALUE self)
@@ -149,17 +160,17 @@ VALUE belongs_to_association_set_inverse_instance(VALUE self, VALUE record)
 {
   belongs_to_association_t* data = get_belongs_to_association(self);
 
-  VALUE inverse_reflection = rb_funcallv_public(data->reflection, rb_intern("inverse_of"), 0, NULL);
+  VALUE inverse_reflection = rb_funcallv_public(data->reflection, id_inverse_of, 0, NULL);
   if (NIL_P(inverse_reflection)) { goto end; }
 
   // Early return unless `inverse_reflection.has_one?`.
-  VALUE has_one = rb_funcallv_public(inverse_reflection, rb_intern("has_one?"), 0, NULL);
+  VALUE has_one = rb_funcallv_public(inverse_reflection, id_has_one, 0, NULL);
   if (has_one != Qtrue) { goto end; }
 
-  VALUE inverse_reflection_name = rb_funcallv_public(inverse_reflection, rb_intern("name"), 0, NULL);
+  VALUE inverse_reflection_name = rb_funcallv_public(inverse_reflection, id_name, 0, NULL);
   // Effectively doing `inverse_association = record.association(inverse_reflection_name)`.
-  VALUE inverse_association = rb_funcallv_public(record, rb_intern("association"), 1, &inverse_reflection_name);
-  rb_funcallv_public(inverse_association, rb_intern("inversed_from"), 1, &data->owner);
+  VALUE inverse_association = rb_funcallv_public(record, id_association, 1, &inverse_reflection_name);
+  rb_funcallv_public(inverse_association, id_inversed_from, 1, &data->owner);
 
 end:
   return record;
@@ -179,14 +190,12 @@ VALUE belongs_to_association_set_target(VALUE self, VALUE target)
 
 VALUE result_hash_rows(VALUE self)
 {
-  ID ivHash_rows = rb_intern("@hash_rows");
-
-  VALUE hash_rows = rb_ivar_get(self, ivHash_rows);
+  VALUE hash_rows = rb_ivar_get(self, id_ivHash_rows);
   if (!NIL_P(hash_rows)) {
     return hash_rows;
   }
 
-  VALUE columns = rb_ivar_get(self, rb_intern("@columns"));
+  VALUE columns = rb_ivar_get(self, id_ivColumns);
   long columns_length = RARRAY_LEN(columns);
 
   VALUE *frozen_columns = malloc(sizeof(VALUE) * columns_length);
@@ -195,7 +204,7 @@ VALUE result_hash_rows(VALUE self)
     frozen_columns[index] = rb_str_dup_frozen(column);
   }
 
-  VALUE rows = rb_ivar_get(self, rb_intern("@rows"));
+  VALUE rows = rb_ivar_get(self, id_ivRows);
   long rows_length = RARRAY_LEN(rows);
 
   VALUE hashed_rows = rb_ary_new2(rows_length);
@@ -209,16 +218,26 @@ VALUE result_hash_rows(VALUE self)
       rb_hash_aset(hashed_row, column_name, column_value);
     }
 
-    rb_ary_push(hashed_rows, hashed_row);
+    rb_ary_store(hashed_rows, row_index, hashed_row);
   }
 
   free(frozen_columns);
-  rb_ivar_set(self, ivHash_rows, hashed_rows);
+  rb_ivar_set(self, id_ivHash_rows, hashed_rows);
   return hashed_rows;
 }
 
 void Init_accelerated_record(void)
 {
+  id_association = rb_intern("association");
+  id_has_one = rb_intern("has_one?");
+  id_inverse_of = rb_intern("inverse_of");
+  id_inversed_from = rb_intern("inversed_from");
+  id_klass = rb_intern("klass");
+  id_name = rb_intern("name");
+  id_ivColumns = rb_intern("@columns");
+  id_ivHash_rows = rb_intern("@hash_rows");
+  id_ivRows = rb_intern("@rows");
+
   rb_mAcceleratedRecord = rb_define_module("AcceleratedRecord");
   rb_mExt = rb_define_module_under(rb_mAcceleratedRecord, "Ext");
 
