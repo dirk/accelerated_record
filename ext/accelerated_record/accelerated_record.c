@@ -1,6 +1,6 @@
 #include "accelerated_record.h"
 
-VALUE rb_mAcceleratedRecord, rb_mExt, rb_cBelongsToAssociation;
+VALUE rb_mAcceleratedRecord, rb_mExt, rb_cBelongsToAssociation, rb_mResult;
 
 typedef struct {
   VALUE owner;
@@ -177,6 +177,46 @@ VALUE belongs_to_association_set_target(VALUE self, VALUE target)
   return belongs_to_association_set_loaded(self);
 }
 
+VALUE result_hash_rows(VALUE self)
+{
+  ID ivHash_rows = rb_intern("@hash_rows");
+
+  VALUE hash_rows = rb_ivar_get(self, ivHash_rows);
+  if (!NIL_P(hash_rows)) {
+    return hash_rows;
+  }
+
+  VALUE columns = rb_ivar_get(self, rb_intern("@columns"));
+  long columns_length = RARRAY_LEN(columns);
+
+  VALUE *frozen_columns = malloc(sizeof(VALUE) * columns_length);
+  for (long index = 0; index < columns_length; index++) {
+    VALUE column = RARRAY_AREF(columns, index);
+    frozen_columns[index] = rb_str_dup_frozen(column);
+  }
+
+  VALUE rows = rb_ivar_get(self, rb_intern("@rows"));
+  long rows_length = RARRAY_LEN(rows);
+
+  VALUE hashed_rows = rb_ary_new2(rows_length);
+  for (long row_index = 0; row_index < rows_length; row_index++) {
+    VALUE row = RARRAY_AREF(rows, row_index);
+
+    VALUE hashed_row = rb_hash_new();
+    for (long column_index = 0; column_index < columns_length; column_index++) {
+      VALUE column_name = frozen_columns[column_index];
+      VALUE column_value = RARRAY_AREF(row, column_index);
+      rb_hash_aset(hashed_row, column_name, column_value);
+    }
+
+    rb_ary_push(hashed_rows, hashed_row);
+  }
+
+  free(frozen_columns);
+  rb_ivar_set(self, ivHash_rows, hashed_rows);
+  return hashed_rows;
+}
+
 void Init_accelerated_record(void)
 {
   rb_mAcceleratedRecord = rb_define_module("AcceleratedRecord");
@@ -192,4 +232,7 @@ void Init_accelerated_record(void)
   rb_define_method(rb_cBelongsToAssociation, "reflection", belongs_to_association_reflection, 0);
   rb_define_method(rb_cBelongsToAssociation, "set_inverse_instance", belongs_to_association_set_inverse_instance, 1);
   rb_define_method(rb_cBelongsToAssociation, "target=", belongs_to_association_set_target, 1);
+
+  rb_mResult = rb_define_module_under(rb_mExt, "Result");
+  rb_define_method(rb_mResult, "hash_rows", result_hash_rows, 0);
 }
